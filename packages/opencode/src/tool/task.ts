@@ -136,7 +136,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       }
       ctx.abort.addEventListener("abort", cancel)
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
-      const subagentPrompt = `You have now entered the subagent flow. You are a subagent. Proceed with: ${params.prompt}`
+      const subagentPrompt = params.prompt
       const promptParts = await SessionPrompt.resolvePromptParts(subagentPrompt)
 
       const result = await SessionPrompt.prompt({
