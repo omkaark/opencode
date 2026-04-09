@@ -64,6 +64,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       if (!agent) throw new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`)
 
       const hasTaskPermission = agent.permission.some((rule) => rule.permission === "task")
+      const hasTodoWritePermission = agent.permission.some((rule) => rule.permission === "todowrite")
 
       const session = await iife(async () => {
         if (params.task_id) {
@@ -71,29 +72,19 @@ export const TaskTool = Tool.define("task", async (ctx) => {
           if (found) return found
         }
 
-        // Fork parent session to share context
-        // Cut off before current assistant message
-        const forked = await Session.fork({
-          sessionID: ctx.sessionID,
-          messageID: ctx.messageID,
-        })
-
-        // Mark as subagent session
-        await Session.setParentID({ sessionID: forked.id, parentID: ctx.sessionID })
-        await Session.setTitle({ sessionID: forked.id, title: params.description + ` (@${agent.name} subagent)` })
-        await Session.setPermission({
-          sessionID: forked.id,
+        return await Session.create({
+          parentID: ctx.sessionID,
+          title: params.description + ` (@${agent.name} subagent)`,
           permission: [
-            {
-              permission: "todowrite",
-              pattern: "*",
-              action: "deny",
-            },
-            {
-              permission: "todoread",
-              pattern: "*",
-              action: "deny",
-            },
+            ...(hasTodoWritePermission
+              ? []
+              : [
+                  {
+                    permission: "todowrite" as const,
+                    pattern: "*" as const,
+                    action: "deny" as const,
+                  },
+                ]),
             ...(hasTaskPermission
               ? []
               : [
@@ -110,8 +101,6 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             })) ?? []),
           ],
         })
-
-        return forked
       })
       const msg = await MessageV2.get({ sessionID: ctx.sessionID, messageID: ctx.messageID })
       if (msg.info.role !== "assistant") throw new Error("Not an assistant message")
@@ -136,8 +125,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       }
       ctx.abort.addEventListener("abort", cancel)
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
-      const subagentPrompt = params.prompt
-      const promptParts = await SessionPrompt.resolvePromptParts(subagentPrompt)
+      const promptParts = await SessionPrompt.resolvePromptParts(params.prompt)
 
       const result = await SessionPrompt.prompt({
         messageID,
@@ -148,8 +136,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
         },
         agent: agent.name,
         tools: {
-          todowrite: false,
-          todoread: false,
+          ...(hasTodoWritePermission ? {} : { todowrite: false }),
           ...(hasTaskPermission ? {} : { task: false }),
           ...Object.fromEntries((config.experimental?.primary_tools ?? []).map((t) => [t, false])),
         },

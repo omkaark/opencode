@@ -1,0 +1,38 @@
+Clone yourself to work on a task in parallel while preserving your full conversation context.
+
+The cloned agent receives an exact copy of your conversation history up to this point. It does not know it is a clone. It will receive your prompt as if the user typed it, execute the task autonomously, and return a summary of what it did.
+
+When to use the Clone tool:
+- When you need to work on an independent subtask that benefits from your full conversation context (e.g., understanding prior decisions, code you've already seen, user preferences)
+- When you want to parallelize work across multiple files or features that you've already discussed
+- When the task requires the same deep understanding of the codebase and conversation that you have
+
+When NOT to use the Clone tool:
+- For simple lookups or searches — use Read, Glob, or Grep instead
+- For tasks that don't need your conversation history — use the Task tool with a specialized agent instead
+- For tasks that are trivial or can be done inline in a few steps
+
+Usage notes:
+1. You can launch multiple clones concurrently by making multiple clone tool calls in a single message
+2. Each clone operates independently with its own copy of the conversation — changes made by one clone are not visible to others
+3. The clone will return a summary of its work. The result returned by the clone is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
+4. Write a clear, specific prompt. The clone will treat it as a new user message following the existing conversation. Since the clone shares your full context, you do not need to repeat background information — just state the task directly.
+5. The clone has access to all the same tools you do, except it cannot clone itself or launch subagents
+6. Clearly tell the clone whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it will not know your intent unless you state it
+
+Example usage:
+
+<example>
+user: "Refactor the auth module to use JWT tokens and update the tests"
+assistant: I'll work on both in parallel using clones.
+assistant: [Clone 1] Clone(description="Refactor auth to JWT", prompt="Refactor the auth module in src/auth/ to use JWT tokens instead of session cookies. Update all related handler functions.")
+assistant: [Clone 2] Clone(description="Update auth tests", prompt="Update the test files in tests/auth/ to work with JWT-based authentication instead of session cookies. Make sure all tests pass.")
+</example>
+
+<example>
+user: "We discussed adding rate limiting earlier. Can you implement it now?"
+<commentary>
+The clone will have the full conversation context, so it already knows what was discussed about rate limiting — no need to repeat it.
+</commentary>
+assistant: Clone(description="Implement rate limiting", prompt="Implement the rate limiting feature we discussed earlier. Write the code and verify it works.")
+</example>
