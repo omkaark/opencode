@@ -18,14 +18,14 @@ The Clone tool solves this by **forking the session** — the clone gets a compl
 4. **Title**: `Session.setTitle()` names the clone session `"<description> (clone)"`
 5. **Prompt injection**: The user's prompt is appended with a summary instruction and passed through `SessionPrompt.resolvePromptParts()` to handle any file/agent references
 6. **Execution**: `SessionPrompt.prompt()` injects the prompt as a user message in the forked session and runs the standard LLM loop
-7. **Tool restrictions**: The clone cannot use `clone`, `task`, `todowrite`, or `todoread` — preventing recursive cloning and subagent spawning
+7. **Tool restrictions**: The clone cannot use `todowrite` or `todoread`. It has full access to all other tools including clone and task.
 8. **Result extraction**: The last text part of the clone's response is extracted and returned to the main agent wrapped in `<clone_result>` tags
 
 ### Key design decisions
 
 - **No agent selection**: Unlike the Task tool, the clone IS the main agent. There's no `subagent_type` parameter.
 - **Same model**: The clone uses the same model/provider as the parent's current assistant message.
-- **No recursive cloning**: The clone tool is disabled for clones via `tools: { clone: false }`.
+- **Recursive cloning**: Clones can clone themselves and use the Task tool — no artificial restrictions on tool access.
 - **Summary instruction**: A `SUMMARY_INSTRUCTION` is appended to every prompt, asking the clone to end with a summary of changes, decisions, and things to review.
 - **Permission-based access control**: Uses `permission: "clone"` so it can be independently enabled/disabled via the permission system.
 
@@ -102,11 +102,11 @@ Main Agent Session
 | Agent | Same as parent | Selectable (specialized agents) |
 | Model | Same as parent | Agent-configured or inherited |
 | Use case | Parallel work needing context | Specialized subtasks |
-| Recursive | Cannot clone or spawn tasks | Configurable per agent |
+| Recursive | Can clone itself and use all tools | Configurable per agent |
 | Prompt style | Direct (context is shared) | Must be self-contained |
 
 ## Future Considerations
 
 - **Configuring which tool the main LLM can use**: Task, Clone, both, or neither — via agent permission configuration
-- **Recursive cloning**: Currently denied. Could be enabled with depth limits for tree-of-thought patterns.
+- **Recursive cloning depth limits**: Clones can currently clone indefinitely. Depth limits could prevent runaway chains.
 - **Clone-to-clone communication**: Clones are independent. A coordination mechanism could enable collaborative workflows.
