@@ -18,7 +18,7 @@ The Clone tool solves this by **forking the session** — the clone gets a compl
 4. **Title**: `Session.setTitle()` names the clone session `"<description> (clone)"`
 5. **Prompt injection**: The user's prompt is appended with a summary instruction and passed through `SessionPrompt.resolvePromptParts()` to handle any file/agent references
 6. **Execution**: `SessionPrompt.prompt()` injects the prompt as a user message in the forked session and runs the standard LLM loop
-7. **Tool restrictions**: The clone cannot use `todowrite` or `todoread`. It has full access to all other tools including clone and task.
+7. **Tool restrictions**: None. The clone has full access to all tools including clone, task, todowrite, etc.
 8. **Result extraction**: The last text part of the clone's response is extracted and returned to the main agent wrapped in `<clone_result>` tags
 
 ### Key design decisions

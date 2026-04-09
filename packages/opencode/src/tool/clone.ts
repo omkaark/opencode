@@ -80,10 +80,7 @@ export const CloneTool = Tool.define("clone", async () => {
           modelID: model.modelID,
           providerID: model.providerID,
         },
-        tools: {
-          todowrite: false,
-          todoread: false,
-        },
+        tools: {},
         parts: promptParts,
       })
 
