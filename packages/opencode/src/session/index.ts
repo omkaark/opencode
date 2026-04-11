@@ -735,6 +735,27 @@ export namespace Session {
     runPromise((svc) => svc.setPermission(input)),
   )
 
+  export const setParentID = fn(
+    z.object({
+      sessionID: SessionID.zod,
+      parentID: SessionID.zod,
+    }),
+    async (input) => {
+      return Database.use((db) => {
+        const row = db
+          .update(SessionTable)
+          .set({ parent_id: input.parentID, time_updated: Date.now() })
+          .where(eq(SessionTable.id, input.sessionID))
+          .returning()
+          .get()
+        if (!row) throw new NotFoundError({ message: `Session not found: ${input.sessionID}` })
+        const info = fromRow(row)
+        Database.effect(() => Bus.publish(Event.Updated, { info }))
+        return info
+      })
+    },
+  )
+
   export const setRevert = fn(
     z.object({ sessionID: SessionID.zod, revert: Info.shape.revert, summary: Info.shape.summary }),
     (input) =>
