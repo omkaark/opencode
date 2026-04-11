@@ -9,6 +9,7 @@ import { Auth } from "../auth"
 import { ProviderTransform } from "../provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_BUILD from "./prompt/build.txt"
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
 import PROMPT_SUMMARY from "./prompt/summary.txt"
@@ -106,6 +107,7 @@ export namespace Agent {
             build: {
               name: "build",
               description: "The default agent. Executes tools based on configured permissions.",
+              prompt: PROMPT_BUILD,
               options: {},
               permission: Permission.merge(
                 defaults,

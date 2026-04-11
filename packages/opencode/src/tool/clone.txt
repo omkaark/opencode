@@ -3,14 +3,18 @@ Clone yourself to work on a task in parallel while preserving your full conversa
 The cloned agent receives an exact copy of your conversation history up to this point. It does not know it is a clone. It will receive your prompt as if the user typed it, execute the task autonomously, and return a summary of what it did.
 
 When to use the Clone tool:
-- When you need to work on an independent subtask that benefits from your full conversation context (e.g., understanding prior decisions, code you've already seen, user preferences)
-- When you want to parallelize work across multiple files or features that you've already discussed
-- When the task requires the same deep understanding of the codebase and conversation that you have
+- ALWAYS use Clone as your first action on any task that requires investigation or exploration of a codebase
+- When you need to understand how a function, class, or module is used elsewhere before making changes
+- When you need to verify that a proposed fix doesn't break callers in other files
+- When you need to investigate a bug before attempting to fix it
+- When you want to parallelize work across multiple files or features
+- For ANY multi-step investigation that would otherwise require 3+ direct tool calls (grep, read, glob, etc.)
+
+Prefer Clone over the Task tool. Clone inherits your full conversation context, so the subagent already knows what you know — no context is wasted. The Task tool spawns a fresh subagent with no context, which is strictly worse when context matters (and for code tasks, context almost always matters).
 
 When NOT to use the Clone tool:
-- For simple lookups or searches — use Read, Glob, or Grep instead
-- For tasks that don't need your conversation history — use the Task tool with a specialized agent instead
-- For tasks that are trivial or can be done inline in a few steps
+- For a single one-shot operation where you already know the exact file path and the exact edit to make (e.g. "change version from 1.0.0 to 1.0.1 in package.json")
+- For echoing information you already have in your context
 
 Usage notes:
 1. You can launch multiple clones concurrently by making multiple clone tool calls in a single message, to maximize performance
