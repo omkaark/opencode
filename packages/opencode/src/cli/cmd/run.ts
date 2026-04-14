@@ -430,9 +430,16 @@ export const RunCommand = cmd({
         }
       }
 
-      function emit(type: string, data: Record<string, unknown>) {
+      function emit(type: string, data: Record<string, unknown>, eventSessionID?: string) {
         if (args.format === "json") {
-          process.stdout.write(JSON.stringify({ type, timestamp: Date.now(), sessionID, ...data }) + EOL)
+          process.stdout.write(
+            JSON.stringify({
+              type,
+              timestamp: Date.now(),
+              sessionID: eventSessionID ?? sessionID,
+              ...data,
+            }) + EOL,
+          )
           return true
         }
         return false
@@ -459,10 +466,13 @@ export const RunCommand = cmd({
 
           if (event.type === "message.part.updated") {
             const part = event.properties.part
-            if (part.sessionID !== sessionID) continue
+            const isSubagent = part.sessionID !== sessionID
+            // JSON mode: emit subagent events
+            // TTY mode: main only
+            if (isSubagent && args.format !== "json") continue
 
             if (part.type === "tool" && (part.state.status === "completed" || part.state.status === "error")) {
-              if (emit("tool_use", { part })) continue
+              if (emit("tool_use", { part }, part.sessionID)) continue
               if (part.state.status === "completed") {
                 tool(part)
                 continue
@@ -486,15 +496,15 @@ export const RunCommand = cmd({
             }
 
             if (part.type === "step-start") {
-              if (emit("step_start", { part })) continue
+              if (emit("step_start", { part }, part.sessionID)) continue
             }
 
             if (part.type === "step-finish") {
-              if (emit("step_finish", { part })) continue
+              if (emit("step_finish", { part }, part.sessionID)) continue
             }
 
             if (part.type === "text" && part.time?.end) {
-              if (emit("text", { part })) continue
+              if (emit("text", { part }, part.sessionID)) continue
               const text = part.text.trim()
               if (!text) continue
               if (!process.stdout.isTTY) {
@@ -507,7 +517,7 @@ export const RunCommand = cmd({
             }
 
             if (part.type === "reasoning" && part.time?.end && args.thinking) {
-              if (emit("reasoning", { part })) continue
+              if (emit("reasoning", { part }, part.sessionID)) continue
               const text = part.text.trim()
               if (!text) continue
               const line = `Thinking: ${text}`
@@ -523,13 +533,16 @@ export const RunCommand = cmd({
 
           if (event.type === "session.error") {
             const props = event.properties
-            if (props.sessionID !== sessionID || !props.error) continue
+            if (!props.error) continue
             let err = String(props.error.name)
             if ("data" in props.error && props.error.data && "message" in props.error.data) {
               err = String(props.error.data.message)
             }
+            // JSON mode emit errors from main + subagents 
+            // accumulator: keep scoped to main session so subagent errors don't pollute the main-run error state or console output
+            if (emit("error", { error: props.error }, props.sessionID)) continue
+            if (props.sessionID !== sessionID) continue
             error = error ? error + EOL + err : err
-            if (emit("error", { error: props.error })) continue
             UI.error(err)
           }
 
