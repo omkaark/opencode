@@ -7,6 +7,14 @@ import { MessageV2 } from "../session/message-v2"
 import { SessionPrompt } from "../session/prompt"
 import { defer } from "@/util/defer"
 
+const CONTEXT_INSTRUCTION = [
+  "IMPORTANT: The conversation history above is YOUR prior work — you already read those files,",
+  "you already found those results. Do NOT re-read files or re-run searches that appear in your",
+  "history. Build on what you already know. Proceed directly to the solution.",
+  "",
+  "",
+].join("\n")
+
 const SUMMARY_INSTRUCTION = [
   "",
   "",
@@ -76,7 +84,7 @@ export const CloneTool = Tool.define("clone", async () => {
       ctx.abort.addEventListener("abort", cancel)
       using _ = defer(() => ctx.abort.removeEventListener("abort", cancel))
 
-      const clonePrompt = params.prompt + SUMMARY_INSTRUCTION
+      const clonePrompt = CONTEXT_INSTRUCTION + params.prompt + SUMMARY_INSTRUCTION
       const promptParts = await SessionPrompt.resolvePromptParts(clonePrompt)
 
       const result = await SessionPrompt.prompt({
