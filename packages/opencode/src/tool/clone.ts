@@ -42,9 +42,15 @@ export const CloneTool = Tool.define("clone", async () => {
         messageID: ctx.messageID,
       })
 
-      // Mark as a child session of the parent
       await Session.setParentID({ sessionID: forked.id, parentID: ctx.sessionID })
       await Session.setTitle({ sessionID: forked.id, title: params.description + " (clone)" })
+      await Session.setPermission({
+        sessionID: forked.id,
+        permission: [
+          { permission: "task" as const, pattern: "*" as const, action: "deny" as const },
+          { permission: "clone" as const, pattern: "*" as const, action: "deny" as const },
+        ],
+      })
 
       const msg = await MessageV2.get({ sessionID: ctx.sessionID, messageID: ctx.messageID })
       if (msg.info.role !== "assistant") throw new Error("Not an assistant message")
@@ -80,7 +86,7 @@ export const CloneTool = Tool.define("clone", async () => {
           modelID: model.modelID,
           providerID: model.providerID,
         },
-        tools: {},
+        tools: { clone: false, task: false },
         parts: promptParts,
       })
 
